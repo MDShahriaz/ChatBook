@@ -8,25 +8,43 @@
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
+
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="171dp"
             android:orientation="vertical">
+
             <EditText
                 android:id="@+id/myName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:hint="@string/enter_your_name"
                 android:layout_gravity="center"
-                android:gravity="center"/>
+                android:gravity="center"
+                android:hint="@string/enter_your_name" />
+
             <Button
                 android:id="@+id/btn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="Ok"
-                />
+                android:text="Ok" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
 </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+<!--<EditText-->
+<!--android:id="@+id/myName"-->
+<!--android:layout_width="wrap_content"-->
+<!--android:layout_height="wrap_content"-->
+<!--android:layout_gravity="center"-->
+<!--android:gravity="center"-->
+<!--android:hint="@string/enter_your_name" />-->
+
+<!--<Button-->
+<!--android:id="@+id/btn"-->
+<!--android:layout_width="wrap_content"-->
+<!--android:layout_height="wrap_content"-->
+<!--android:layout_gravity="center"-->
+<!--android:text="Ok" />-->

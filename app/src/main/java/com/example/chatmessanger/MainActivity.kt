@@ -1,11 +1,15 @@
 package com.example.chatmessanger
 
 import android.app.Dialog
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
+import android.view.inputmethod.InputMethodManager
+import android.widget.Toast
 import com.example.chatmessanger.databinding.ActivityMainBinding
 import com.example.chatmessanger.databinding.CustomDialogBinding
 
@@ -26,6 +30,7 @@ class MainActivity : AppCompatActivity() {
         myDialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         myDialog.show()
 
+        val name = dialogBinding.myName.text.toString()
         dialogBinding.btn.setOnClickListener {
             myDialog.dismiss()
             val name = dialogBinding.myName.text.toString()
@@ -33,6 +38,12 @@ class MainActivity : AppCompatActivity() {
                 it.putExtra("NAME",name)
             }
             startActivity(intent)
+            closeKeyboard(dialogBinding.myName)
         }
+    }
+
+    private fun closeKeyboard(view: View) {
+        val inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        inputMethodManager.hideSoftInputFromWindow(view.windowToken,0)
     }
 }

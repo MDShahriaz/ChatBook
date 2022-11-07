@@ -8,12 +8,12 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/chatList"
-        android:layout_width="0dp"
+        android:layout_width="318dp"
         android:layout_height="wrap_content"
+        app:layout_constraintBottom_toTopOf="@+id/messageContainer"
         app:layout_constraintEnd_toStartOf="@id/right_guideline"
         app:layout_constraintHorizontal_bias="0.625"
         app:layout_constraintStart_toEndOf="@id/left_guideline"
-        app:layout_constraintTop_toBottomOf="@id/topGuideline"
         tools:ignore="MissingConstraints" />
 
     <androidx.constraintlayout.widget.Guideline
@@ -85,8 +85,15 @@
         android:id="@+id/group"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:visibility="gone"
         app:constraint_referenced_ids="chatList,messageContainer,sendButton" />
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/barrier"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="top"
+        app:constraint_referenced_ids="messageContainer"
+        tools:layout_editor_absoluteY="731dp" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

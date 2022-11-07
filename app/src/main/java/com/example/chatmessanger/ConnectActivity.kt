@@ -2,11 +2,13 @@ package com.example.chatmessanger
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -85,11 +87,18 @@ class ConnectActivity : AppCompatActivity() {
         startDiscovery()
         binding.sendButton.setOnClickListener{
             sendData(myName.toString(),binding.sendMsgText.text.toString())
+            closeKeyboard(binding.sendMsgText)
+            binding.sendMsgText.text?.clear()
         }
         // bind with recycler view
         binding.chatList.adapter = messageAdapter
         binding.chatList.layoutManager = LinearLayoutManager(this)
         binding.chatList.setHasFixedSize(true)
+    }
+
+    private fun closeKeyboard(view:View) {
+        val inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        inputMethodManager.hideSoftInputFromWindow(view.windowToken,0)
     }
 
     private fun startAdvertising(){
