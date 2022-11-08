@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+    android:padding="15dp"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".Base.ProgressBarFragment">
 
@@ -13,15 +14,18 @@
         android:layout_marginStart="4dp"
         android:layout_marginTop="8dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toTopOf="@id/progressTxt"
+        app:layout_constraintBottom_toBottomOf="@id/progressTxt"
         tools:ignore="MissingConstraints" />
 
     <TextView
+        android:id="@+id/progressTxt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginTop="13dp"
-        android:text="@string/please_wait"
+        android:text="Finding opponenent"
+        android:padding="10dp"
         android:textColor="@color/black"
         app:layout_constraintStart_toEndOf="@id/progress"
         app:layout_constraintTop_toTopOf="parent" />

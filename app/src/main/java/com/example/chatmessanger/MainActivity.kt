@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
             }
             startActivity(intent)
             closeKeyboard(dialogBinding.myName)
+            finish()
         }
     }
 

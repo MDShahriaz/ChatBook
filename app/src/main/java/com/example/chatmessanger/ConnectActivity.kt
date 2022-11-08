@@ -79,6 +79,7 @@ class ConnectActivity : AppCompatActivity() {
         binding = ActivityConnectBinding.inflate(layoutInflater)
         setContentView(binding.root)
         progressBarFragment.show(supportFragmentManager,"customDialog")
+        progressBarFragment.isCancelable = false
         connectionsClient = Nearby.getConnectionsClient(this)
         myName = intent.getStringExtra("NAME")
         binding.group.visibility = View.INVISIBLE
