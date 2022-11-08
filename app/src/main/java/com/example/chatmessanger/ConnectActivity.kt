@@ -3,6 +3,7 @@ package com.example.chatmessanger
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -15,7 +16,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.chatmessanger.Base.ProgressBarFragment
 import com.example.chatmessanger.databinding.ActivityConnectBinding
-import com.google.android.gms.common.GooglePlayServicesNotAvailableException
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 
@@ -78,14 +78,11 @@ class ConnectActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityConnectBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        progressBarFragment.show(supportFragmentManager,"customDialog")
-        progressBarFragment.isCancelable = false
         connectionsClient = Nearby.getConnectionsClient(this)
         myName = intent.getStringExtra("NAME")
         binding.group.visibility = View.INVISIBLE
         Log.d("Shuvo","$myName in connect activity class")
-        startAdvertising()
-        startDiscovery()
+        operation1()
         binding.sendButton.setOnClickListener{
             sendData(myName.toString(),binding.sendMsgText.text.toString())
             closeKeyboard(binding.sendMsgText)
@@ -96,7 +93,17 @@ class ConnectActivity : AppCompatActivity() {
         binding.chatList.layoutManager = LinearLayoutManager(this)
         binding.chatList.setHasFixedSize(true)
     }
+//    private fun operation(){
+//        val intent = Intent(this,MainActivity::class.java)
+//        startActivity(intent)
+//    }
 
+    private fun operation1(){
+        progressBarFragment.show(supportFragmentManager,"customDialog")
+        progressBarFragment.isCancelable = false
+        startAdvertising()
+        startDiscovery()
+    }
     private fun closeKeyboard(view:View) {
         val inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         inputMethodManager.hideSoftInputFromWindow(view.windowToken,0)
@@ -135,6 +142,24 @@ class ConnectActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStop() {
+        connectionsClient.apply {
+            stopAdvertising()
+            stopDiscovery()
+            stopAllEndpoints()
+        }
+        resetInfo()
+        super.onStop()
+    }
+    @RequiresApi(Build.VERSION_CODES.M)
+    override fun onDestroy() {
+        opponentEndpointId?.let {
+            connectionsClient.disconnectFromEndpoint(it)
+            resetInfo()
+        }
+        super.onDestroy()
+
+    }
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -156,14 +181,18 @@ class ConnectActivity : AppCompatActivity() {
 
     @SuppressLint("NotifyDataSetChanged")
     private fun sendData(myN:String, message:String){
-        val obj = Data(myN,message)
-        connectionsClient.sendPayload(
-            opponentEndpointId!!,
-            Payload.fromBytes(message.toByteArray())
-        )
-        val m = binding.sendMsgText.text.toString()
-        msgList.add(Data(myN,m))
-        messageAdapter.notifyDataSetChanged()
+        if(opponentEndpointId == null){
+            operation1()
+        }else{
+            connectionsClient.sendPayload(
+                opponentEndpointId!!,
+                Payload.fromBytes(message.toByteArray())
+            )
+            val m = binding.sendMsgText.text.toString()
+            msgList.add(Data(myN,m))
+            messageAdapter.notifyDataSetChanged()
+        }
+
     }
 
     private fun resetInfo() {
