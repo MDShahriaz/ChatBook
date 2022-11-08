@@ -7,6 +7,8 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
@@ -31,6 +33,20 @@ class MainActivity : AppCompatActivity() {
         myDialog.show()
 
         val name = dialogBinding.myName.text.toString()
+        dialogBinding.myName.addTextChangedListener(object:TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                dialogBinding.btn.isEnabled = true
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+
+            }
+
+        })
         dialogBinding.btn.setOnClickListener {
             myDialog.dismiss()
             val name = dialogBinding.myName.text.toString()
