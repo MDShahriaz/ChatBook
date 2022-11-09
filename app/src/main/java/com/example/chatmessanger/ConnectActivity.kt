@@ -8,7 +8,9 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -82,20 +84,26 @@ class ConnectActivity : AppCompatActivity() {
         binding.group.visibility = View.INVISIBLE
         Log.d("Shuvo","$myName in connect activity class")
         operation1()
-        binding.sendButton.setOnClickListener{
-            sendData(myName.toString(),binding.sendMsgText.text.toString())
-            closeKeyboard(binding.sendMsgText)
-            binding.sendMsgText.text?.clear()
+        binding.sendBtn.setOnClickListener{
+            operation()
         }
+        binding.sendMsgText.setOnEditorActionListener(TextView.OnEditorActionListener{_,actionId,_->
+            if(actionId == EditorInfo.IME_ACTION_SEND){
+                operation()
+            }
+            false
+
+        })
         // bind with recycler view
         binding.chatList.adapter = messageAdapter
         binding.chatList.layoutManager = LinearLayoutManager(this)
         binding.chatList.setHasFixedSize(true)
     }
-//    private fun operation(){
-//        val intent = Intent(this,MainActivity::class.java)
-//        startActivity(intent)
-//    }
+    private fun operation(){
+        sendData(myName.toString(),binding.sendMsgText.text.toString())
+//                closeKeyboard(binding.sendMsgText)
+        binding.sendMsgText.text?.clear()
+    }
 
     private fun operation1(){
         progressBarFragment.show(supportFragmentManager,"customDialog")
