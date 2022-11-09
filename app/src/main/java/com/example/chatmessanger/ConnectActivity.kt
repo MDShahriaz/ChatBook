@@ -3,7 +3,6 @@ package com.example.chatmessanger
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -33,7 +32,7 @@ class ConnectActivity : AppCompatActivity() {
     //my Info
     private var myName:String? = null
     private var myMessage:String?=null
-    val messageAdapter = MessageAdapter(msgList)
+    val messageAdapter = Adapter(msgList)
 
     private lateinit var binding : ActivityConnectBinding
     val progressBarFragment = ProgressBarFragment()
@@ -121,7 +120,7 @@ class ConnectActivity : AppCompatActivity() {
                 opponentMessage = it.decodeToString()
             }
             ///binding opponentName set hobe
-            val obj = Data(opponentName.toString(),opponentMessage.toString())
+            val obj = Data(1,opponentName.toString(),opponentMessage.toString())
             msgList.add(obj)
             messageAdapter.notifyDataSetChanged()
         }
@@ -134,12 +133,31 @@ class ConnectActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onStart() {
         super.onStart()
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                REQUEST_CODE_REQUIRED_PERMISSIONS
-            )
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                || checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED
+                || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+            ){
+                requestPermissions(
+                    arrayOf(
+                        Manifest.permission.BLUETOOTH_SCAN,
+                        Manifest.permission.BLUETOOTH_CONNECT,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ),
+                    REQUEST_CODE_REQUIRED_PERMISSIONS
+                )
+            }
         }
+        else {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    REQUEST_CODE_REQUIRED_PERMISSIONS
+                )
+            }
+        }
+
     }
 
     override fun onStop() {
@@ -189,7 +207,7 @@ class ConnectActivity : AppCompatActivity() {
                 Payload.fromBytes(message.toByteArray())
             )
             val m = binding.sendMsgText.text.toString()
-            msgList.add(Data(myN,m))
+            msgList.add(Data(0,myN,m))
             messageAdapter.notifyDataSetChanged()
         }
 
