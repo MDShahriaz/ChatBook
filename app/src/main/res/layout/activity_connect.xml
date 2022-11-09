@@ -47,7 +47,6 @@
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/messageContainer"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="40dp"
@@ -66,17 +65,20 @@
             android:hint="@string/type_message"
             android:imeOptions="actionSend"
             android:inputType="textEmailAddress"
+            android:paddingEnd="15dp"
             android:lines="1"
-            android:paddingStart="20dp" />
+            android:paddingStart="20dp"
+            android:background="@drawable/side_border"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <ImageButton
         android:id="@+id/sendBtn"
-        android:layout_width="24dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@color/white"
         android:scaleType="centerCrop"
         android:src="@drawable/image_send"
+        android:layout_marginEnd="8dp"
         app:layout_constraintBottom_toBottomOf="@id/messageContainer"
         app:layout_constraintEnd_toStartOf="@id/right_guideline"
         app:layout_constraintTop_toTopOf="@id/messageContainer" />
