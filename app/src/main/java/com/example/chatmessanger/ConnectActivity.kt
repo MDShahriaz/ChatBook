@@ -64,6 +64,7 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
         }
 
         override fun onDisconnected(endpointId: String) {
+            removeEndpointFromList(endpointId)
             resetInfo()
         }
     }
@@ -85,6 +86,17 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
         }
 
         override fun onEndpointLost(endpiontId: String) {
+            removeEndpointFromList(endpiontId)
+        }
+    }
+
+    private fun removeEndpointFromList(endpiontId: String) {
+        for (i in 0 until devicesInfo.size){
+            if(devicesInfo[i].deviceId == endpiontId)
+            {
+                devicesInfo.removeAt(i)
+                deviceListAdapter.notifyDataSetChanged()
+            }
         }
     }
 
