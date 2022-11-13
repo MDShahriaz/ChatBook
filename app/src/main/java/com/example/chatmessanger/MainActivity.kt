@@ -5,13 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.view.inputmethod.InputMethodManager
-import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import com.example.chatmessanger.databinding.ActivityMainBinding
 import com.example.chatmessanger.databinding.CustomDialogBinding
 
@@ -27,7 +26,7 @@ class MainActivity : AppCompatActivity() {
         val myDialog = Dialog(this)
         myDialog.setContentView(dialogBinding.root)
 
-        myDialog.setCancelable(true)
+        myDialog.setCancelable(false)
         myDialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         myDialog.show()
 

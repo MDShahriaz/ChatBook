@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -16,45 +15,51 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.chatmessanger.Base.ProgressBarFragment
-import com.example.chatmessanger.databinding.ActivityConnectBinding
+import com.example.chatmessanger.databinding.ActivityMessageBinding
+import com.example.chatmessanger.databinding.SelectDeviceBinding
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 
-class ConnectActivity : AppCompatActivity() {
-    val msgList = mutableListOf<Data>()
-    private val STRATEGY = Strategy.P2P_STAR
-    private lateinit var  connectionsClient: ConnectionsClient
+
+class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
+    private lateinit var binding: ActivityMessageBinding
+    private val STRATEGY = Strategy.P2P_CLUSTER
     private val REQUEST_CODE_REQUIRED_PERMISSIONS = 1
+    lateinit var messageAdapter: Adapter
+
+    lateinit var connectionsClient: ConnectionsClient
 
     //opponent Info
-    private var opponentName:String? = null
-    private var opponentEndpointId:String? = null
-    private var opponentMessage:String? = null
+    var opponentName: String? = null
+    var opponentEndpointId: String? = null
+    var opponentMessage: String? = null
 
     //my Info
-    private var myName:String? = null
-    private var myMessage:String?=null
-    val messageAdapter = Adapter(msgList)
+    var myName: String? = null
+    private var myMessage: String? = null
 
-    private lateinit var binding : ActivityConnectBinding
+    val msgList = mutableListOf<Data>()
+    var devicesInfo: MutableList<DeviceInformation> = mutableListOf()
+
+    private val deviceListAdapter = DeviceAdapter(this)
+
+    private lateinit var deviceListBinding: SelectDeviceBinding
     val progressBarFragment = ProgressBarFragment()
 
-    private val connectionLifecycleCallback = object :ConnectionLifecycleCallback(){
+    private val connectionLifecycleCallback = object : ConnectionLifecycleCallback() {
         override fun onConnectionInitiated(endpointId: String, info: ConnectionInfo) {
-            connectionsClient.acceptConnection(endpointId,payloadCallback)
+            connectionsClient.acceptConnection(endpointId, payloadCallback)
             opponentName = info.endpointName
         }
 
-        @SuppressLint("SetTextI18n")
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
-            if(result.status.isSuccess){
+            if (result.status.isSuccess) {
                 connectionsClient.stopAdvertising()
-                connectionsClient. stopDiscovery()
+                connectionsClient.stopDiscovery()
                 opponentEndpointId = endpointId
-                Toast.makeText(applicationContext,"Connected",Toast.LENGTH_SHORT)
-                // here we dismiss progress bar
-                progressBarFragment.dismiss()
-                binding.group.visibility = View.VISIBLE
+                Toast.makeText(applicationContext, "Connected", Toast.LENGTH_SHORT).show()
+
+                inflateNewLayout()
             }
         }
 
@@ -63,72 +68,34 @@ class ConnectActivity : AppCompatActivity() {
         }
     }
 
+    private fun inflateNewLayout() {
+        setContentView(binding.root)
+    }
 
-    // this object is use to discover and detect device.
-    private val endpointDiscoveryCallback = object : EndpointDiscoveryCallback(){
+
+    private val endpointDiscoveryCallback = object : EndpointDiscoveryCallback() {
         override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
-            connectionsClient.requestConnection(myName.toString(),endpointId,connectionLifecycleCallback)
+            deviceListBinding.tvTitle.text = "Nearby Devices"
+            val deviceInfo = DeviceInformation(endpointId, info.endpointName)
+            if (!devicesInfo.contains(deviceInfo)) {
+                devicesInfo.add(deviceInfo)
+                deviceListAdapter.notifyItemInserted(devicesInfo.size - 1)
+            }
+            deviceListAdapter.submitList(devicesInfo)
         }
 
         override fun onEndpointLost(endpiontId: String) {
-
         }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityConnectBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        connectionsClient = Nearby.getConnectionsClient(this)
-        myName = intent.getStringExtra("NAME")
-        binding.group.visibility = View.INVISIBLE
-        Log.d("Shuvo","$myName in connect activity class")
-        operation1()
-        binding.sendBtn.setOnClickListener{
-            operation()
-        }
-        binding.sendMsgText.setOnEditorActionListener(TextView.OnEditorActionListener{_,actionId,_->
-            if(actionId == EditorInfo.IME_ACTION_SEND){
-                operation()
-            }
-            false
-
-        })
-        // bind with recycler view
-        binding.chatList.adapter = messageAdapter
-        binding.chatList.layoutManager = LinearLayoutManager(this)
-        binding.chatList.setHasFixedSize(true)
-    }
-    private fun operation(){
-        sendData(myName.toString(),binding.sendMsgText.text.toString())
-//                closeKeyboard(binding.sendMsgText)
-        binding.sendMsgText.text?.clear()
-    }
-
-    private fun operation1(){
-        progressBarFragment.show(supportFragmentManager,"customDialog")
-        progressBarFragment.isCancelable = false
-        startAdvertising()
-        startDiscovery()
-    }
-    private fun closeKeyboard(view:View) {
-        val inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        inputMethodManager.hideSoftInputFromWindow(view.windowToken,0)
-    }
-
-    private fun startAdvertising(){
-        val options = AdvertisingOptions.Builder().setStrategy(STRATEGY).build()
-        connectionsClient.startAdvertising(myName.toString(),packageName,connectionLifecycleCallback,options)
-    }
-
-    private val payloadCallback: PayloadCallback = object: PayloadCallback(){
+    private val payloadCallback: PayloadCallback = object : PayloadCallback() {
         @SuppressLint("NotifyDataSetChanged")
         override fun onPayloadReceived(endpointId: String, payload: Payload) {
-            payload.asBytes()?.let{
+            payload.asBytes()?.let {
                 opponentMessage = it.decodeToString()
             }
-            ///binding opponentName set hobe
-            val obj = Data(1,opponentName.toString(),opponentMessage.toString())
+            val obj =
+                Data(1, opponentName.toString(), opponentMessage.toString())
             msgList.add(obj)
             messageAdapter.notifyDataSetChanged()
         }
@@ -137,35 +104,75 @@ class ConnectActivity : AppCompatActivity() {
 
         }
     }
-    /// verify required permission for access::
-    @RequiresApi(Build.VERSION_CODES.M)
-    override fun onStart() {
-        super.onStart()
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
-            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                || checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED
-                || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
-            ){
-                requestPermissions(
-                    arrayOf(
-                        Manifest.permission.BLUETOOTH_SCAN,
-                        Manifest.permission.BLUETOOTH_CONNECT,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    ),
-                    REQUEST_CODE_REQUIRED_PERMISSIONS
-                )
-            }
+    override fun onNameClicked(deviceInfo: DeviceInformation) {
+        connectionsClient.requestConnection(
+            myName.toString(), deviceInfo.deviceId, connectionLifecycleCallback
+        )
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        deviceListBinding = SelectDeviceBinding.inflate(layoutInflater)
+        binding = ActivityMessageBinding.inflate(layoutInflater)
+        setContentView(deviceListBinding.root)
+        connectionsClient = Nearby.getConnectionsClient(this)
+        myName = intent.getStringExtra("NAME")
+
+        initConnection()
+
+        deviceListBinding.rvDevices.adapter = deviceListAdapter
+        deviceListBinding.rvDevices.layoutManager = LinearLayoutManager(this)
+
+
+        messageAdapter = Adapter(msgList)
+
+        binding.sendBtn.setOnClickListener {
+            sendMessage()
         }
-        else {
-            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                    REQUEST_CODE_REQUIRED_PERMISSIONS
-                )
+        binding.sendMsgText.setOnEditorActionListener(TextView.OnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEND) {
+                sendMessage()
             }
+            false
+
+        })
+        binding.chatList.adapter = messageAdapter
+        binding.chatList.layoutManager = LinearLayoutManager(this)
+        binding.chatList.setHasFixedSize(true)
+    }
+
+    private fun sendMessage() {
+        sendData(myName.toString(), binding.sendMsgText.text.toString())
+//                closeKeyboard(binding.sendMsgText)
+        binding.sendMsgText.text?.clear()
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    private fun sendData(myN: String, message: String) {
+        if (opponentEndpointId == null) {
+            initConnection()
+        } else {
+            connectionsClient.sendPayload(
+                opponentEndpointId!!,
+                Payload.fromBytes(message.toByteArray())
+            )
+            val m = binding.sendMsgText.text.toString()
+            msgList.add(Data(0, myN, m))
+            messageAdapter.notifyDataSetChanged()
         }
 
+    }
+
+    private fun initConnection() {
+        startAdvertising()
+        startDiscovery()
+    }
+
+    private fun closeKeyboard(view: View) {
+        val inputMethodManager =
+            getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     override fun onStop() {
@@ -177,6 +184,7 @@ class ConnectActivity : AppCompatActivity() {
         resetInfo()
         super.onStop()
     }
+
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onDestroy() {
         opponentEndpointId?.let {
@@ -186,10 +194,47 @@ class ConnectActivity : AppCompatActivity() {
         super.onDestroy()
 
     }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    override fun onStart() {
+        super.onStart()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                || checkSelfPermission(
+                    Manifest.permission.BLUETOOTH_SCAN
+                ) != PackageManager.PERMISSION_GRANTED
+                || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+                || checkSelfPermission(
+                    Manifest.permission.BLUETOOTH_ADVERTISE
+                ) != PackageManager.PERMISSION_GRANTED
+                || checkSelfPermission(
+                    Manifest.permission.FOREGROUND_SERVICE
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(
+                    arrayOf(
+                        Manifest.permission.BLUETOOTH_SCAN,
+                        Manifest.permission.BLUETOOTH_CONNECT,
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.BLUETOOTH_ADVERTISE,
+                        Manifest.permission.FOREGROUND_SERVICE
+                    ), REQUEST_CODE_REQUIRED_PERMISSIONS
+                )
+            }
+        } else {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    REQUEST_CODE_REQUIRED_PERMISSIONS
+                )
+            }
+        }
+
+    }
+
     override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         val errMsg = "Cannot start without required permissions"
@@ -205,29 +250,21 @@ class ConnectActivity : AppCompatActivity() {
         }
     }
 
-    @SuppressLint("NotifyDataSetChanged")
-    private fun sendData(myN:String, message:String){
-        if(opponentEndpointId == null){
-            operation1()
-        }else{
-            connectionsClient.sendPayload(
-                opponentEndpointId!!,
-                Payload.fromBytes(message.toByteArray())
-            )
-            val m = binding.sendMsgText.text.toString()
-            msgList.add(Data(0,myN,m))
-            messageAdapter.notifyDataSetChanged()
-        }
-
-    }
-
     private fun resetInfo() {
         opponentEndpointId = null
         opponentName = null
     }
 
-    private fun startDiscovery(){
+    private fun startAdvertising() {
+        val options = AdvertisingOptions.Builder().setStrategy(STRATEGY).build()
+        connectionsClient.startAdvertising(
+            myName.toString(), packageName, connectionLifecycleCallback, options
+        )
+    }
+
+    private fun startDiscovery() {
+        deviceListBinding.tvTitle.text = "No device found"
         val options = DiscoveryOptions.Builder().setStrategy(STRATEGY).build()
-        connectionsClient.startDiscovery(packageName,endpointDiscoveryCallback,options)
+        connectionsClient.startDiscovery(packageName, endpointDiscoveryCallback, options)
     }
 }
