@@ -32,6 +32,8 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
     private val REQUEST_CODE_REQUIRED_PERMISSIONS = 1
     lateinit var messageAdapter: Adapter
 
+    var isImHost = false
+
     lateinit var connectionsClient: ConnectionsClient
 
     //opponent Info
@@ -46,6 +48,8 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
     val msgList = mutableListOf<Data>()
     var devicesInfo: MutableList<DeviceInformation> = mutableListOf()
 
+    val otherDevices = hashMapOf<String, String>()
+
     private val deviceListAdapter = DeviceAdapter(this)
 
     private lateinit var deviceListBinding: SelectDeviceBinding
@@ -55,10 +59,15 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
         override fun onConnectionInitiated(endpointId: String, info: ConnectionInfo) {
             connectionsClient.acceptConnection(endpointId, payloadCallback)
             opponentName = info.endpointName
+            otherDevices[endpointId] = info.endpointName
         }
 
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
             if (result.status.isSuccess) {
+                if(isImHost) {
+                    onNameClicked()
+                    isImHost = true
+                }
                 connectionsClient.stopAdvertising()
                 connectionsClient.stopDiscovery()
                 opponentEndpointId = endpointId
@@ -79,13 +88,14 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
         setupUI(findViewById(R.id.container))
     }
 
-
+    val endpointList = mutableListOf<String>()
     private val endpointDiscoveryCallback = object : EndpointDiscoveryCallback() {
         override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
             deviceListBinding.tvTitle.text = "Nearby Devices"
             val deviceInfo = DeviceInformation(endpointId, info.endpointName)
             if (!devicesInfo.contains(deviceInfo)) {
                 devicesInfo.add(deviceInfo)
+                endpointList.add(endpointId)
                 deviceListAdapter.notifyItemInserted(devicesInfo.size - 1)
             }
             deviceListAdapter.submitList(devicesInfo)
@@ -112,7 +122,7 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
                 opponentMessage = it.decodeToString()
             }
             val obj =
-                Data(1, opponentName.toString(), opponentMessage.toString())
+                Data(1, otherDevices[endpointId]?:"Default_Name", opponentMessage.toString())
             msgList.add(obj)
             messageAdapter.notifyDataSetChanged()
             binding.chatList.scrollToPosition(msgList.size - 1)
@@ -123,10 +133,14 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
         }
     }
 
-    override fun onNameClicked(deviceInfo: DeviceInformation) {
-        connectionsClient.requestConnection(
-            myName.toString(), deviceInfo.deviceId, connectionLifecycleCallback
-        )
+    override fun onNameClicked() {
+        isImHost = true
+        for (i in 0 until devicesInfo.size) {
+            connectionsClient.requestConnection(
+                myName.toString(), devicesInfo[i].deviceId, connectionLifecycleCallback
+            )
+
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -172,7 +186,7 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
             initConnection()
         } else {
             connectionsClient.sendPayload(
-                opponentEndpointId!!,
+                endpointList,
                 Payload.fromBytes(message.toByteArray())
             )
             val m = binding.sendMsgText.text.toString()
