@@ -2,17 +2,22 @@ package com.example.chatmessanger
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.chatmessanger.Base.ProgressBarFragment
 import com.example.chatmessanger.databinding.ActivityMessageBinding
@@ -71,6 +76,7 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
 
     private fun inflateNewLayout() {
         setContentView(binding.root)
+        setupUI(findViewById(R.id.container))
     }
 
 
@@ -91,9 +97,8 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
     }
 
     private fun removeEndpointFromList(endpiontId: String) {
-        for (i in 0 until devicesInfo.size){
-            if(devicesInfo[i].deviceId == endpiontId)
-            {
+        for (i in 0 until devicesInfo.size) {
+            if (devicesInfo[i].deviceId == endpiontId) {
                 devicesInfo.removeAt(i)
                 deviceListAdapter.notifyDataSetChanged()
             }
@@ -110,6 +115,7 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
                 Data(1, opponentName.toString(), opponentMessage.toString())
             msgList.add(obj)
             messageAdapter.notifyDataSetChanged()
+            binding.chatList.scrollToPosition(msgList.size - 1)
         }
 
         override fun onPayloadTransferUpdate(p0: String, p1: PayloadTransferUpdate) {
@@ -172,6 +178,7 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
             val m = binding.sendMsgText.text.toString()
             msgList.add(Data(0, myN, m))
             messageAdapter.notifyDataSetChanged()
+            binding.chatList.scrollToPosition(msgList.size - 1)
         }
 
     }
@@ -179,12 +186,6 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
     private fun initConnection() {
         startAdvertising()
         startDiscovery()
-    }
-
-    private fun closeKeyboard(view: View) {
-        val inputMethodManager =
-            getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     override fun onStop() {
@@ -278,5 +279,31 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
         deviceListBinding.tvTitle.text = "No device found"
         val options = DiscoveryOptions.Builder().setStrategy(STRATEGY).build()
         connectionsClient.startDiscovery(packageName, endpointDiscoveryCallback, options)
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    fun setupUI(view: View) {
+
+        if (view !is EditText && view !is ImageButton) {
+            view.setOnTouchListener { v, event ->
+                hideSoftKeyboard(this)
+                false
+            }
+        }
+
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                val innerView = view.getChildAt(i)
+                setupUI(innerView)
+            }
+        }
+    }
+
+    private fun Activity.hideSoftKeyboard(context: Context) {
+        currentFocus?.let {
+            val inputMethodManager =
+                ContextCompat.getSystemService(context, InputMethodManager::class.java)!!
+            inputMethodManager.hideSoftInputFromWindow(it.windowToken, 0)
+        }
     }
 }
