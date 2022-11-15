@@ -26,7 +26,7 @@ class DeviceAdapter(private val mCallback: Callback? = null) : ListAdapter<Devic
         val deviceInfo = getItem(position)
         holder.bind(deviceInfo)
         holder.binding.layoutDeviceInfo.setOnClickListener {
-            mCallback?.onNameClicked(deviceInfo)
+            mCallback?.onNameClicked()
         }
     }
 
@@ -40,7 +40,7 @@ class DeviceAdapter(private val mCallback: Callback? = null) : ListAdapter<Devic
         }
     }
     interface Callback {
-        fun onNameClicked(deviceInfo: DeviceInformation)
+        fun onNameClicked()
     }
 
 }
