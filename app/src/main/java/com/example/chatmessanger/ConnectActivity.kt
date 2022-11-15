@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -28,27 +29,26 @@ import com.google.android.gms.nearby.connection.*
 
 class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
     private lateinit var binding: ActivityMessageBinding
-    private val STRATEGY = Strategy.P2P_CLUSTER
-    private val REQUEST_CODE_REQUIRED_PERMISSIONS = 1
+    lateinit var connectionsClient: ConnectionsClient
     lateinit var messageAdapter: Adapter
 
-    var isImHost = false
+    private val STRATEGY = Strategy.P2P_CLUSTER
+    private val REQUEST_CODE_REQUIRED_PERMISSIONS = 1
 
-    lateinit var connectionsClient: ConnectionsClient
+    var isImHost = false
+    private val divider = "[#?@%]"
 
     //opponent Info
-    var opponentName: String? = null
-    var opponentEndpointId: String? = null
-    var opponentMessage: String? = null
+    var opponentMessage: String = divider
 
     //my Info
     var myName: String? = null
-    private var myMessage: String? = null
 
     val msgList = mutableListOf<Data>()
-    var devicesInfo: MutableList<DeviceInformation> = mutableListOf()
 
-    val otherDevices = hashMapOf<String, String>()
+    var devicesInfo: MutableList<DeviceInformation> = mutableListOf()
+    var deviceName = hashMapOf<String, String>()
+    val endpointList = mutableListOf<String>()
 
     private val deviceListAdapter = DeviceAdapter(this)
 
@@ -57,20 +57,15 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
 
     private val connectionLifecycleCallback = object : ConnectionLifecycleCallback() {
         override fun onConnectionInitiated(endpointId: String, info: ConnectionInfo) {
+            endpointList.add(endpointId)
+            deviceName[endpointId] = info.endpointName
             connectionsClient.acceptConnection(endpointId, payloadCallback)
-            opponentName = info.endpointName
-            otherDevices[endpointId] = info.endpointName
         }
 
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
             if (result.status.isSuccess) {
-                if(isImHost) {
-                    onNameClicked()
-                    isImHost = true
-                }
                 connectionsClient.stopAdvertising()
                 connectionsClient.stopDiscovery()
-                opponentEndpointId = endpointId
                 Toast.makeText(applicationContext, "Connected", Toast.LENGTH_SHORT).show()
 
                 inflateNewLayout()
@@ -78,8 +73,11 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
         }
 
         override fun onDisconnected(endpointId: String) {
-            removeEndpointFromList(endpointId)
-            resetInfo()
+            Toast.makeText(
+                applicationContext,
+                "${deviceName[endpointId]} Disconnected",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -88,49 +86,79 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
         setupUI(findViewById(R.id.container))
     }
 
-    val endpointList = mutableListOf<String>()
     private val endpointDiscoveryCallback = object : EndpointDiscoveryCallback() {
         override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
             deviceListBinding.tvTitle.text = "Nearby Devices"
             val deviceInfo = DeviceInformation(endpointId, info.endpointName)
-            if (!devicesInfo.contains(deviceInfo)) {
-                devicesInfo.add(deviceInfo)
-                endpointList.add(endpointId)
-                deviceListAdapter.notifyItemInserted(devicesInfo.size - 1)
-            }
-            deviceListAdapter.submitList(devicesInfo)
+            removeEndpointFromList(info.endpointName)
+            devicesInfo.add(deviceInfo)
+            deviceListAdapter.notifyItemInserted(devicesInfo.size - 1)
         }
 
         override fun onEndpointLost(endpiontId: String) {
-            removeEndpointFromList(endpiontId)
         }
     }
 
-    private fun removeEndpointFromList(endpiontId: String) {
-        for (i in 0 until devicesInfo.size) {
-            if (devicesInfo[i].deviceId == endpiontId) {
-                devicesInfo.removeAt(i)
-                deviceListAdapter.notifyDataSetChanged()
+    private fun removeEndpointFromList(name: String) {
+        if (devicesInfo.isEmpty()) return
+        var iterator = 0
+
+        while (iterator < devicesInfo.size) {
+            if (devicesInfo[iterator].deviceName == name) {
+                devicesInfo.removeAt(iterator)
+                deviceListAdapter.notifyItemRemoved(iterator)
+                iterator--
             }
+            iterator++
         }
+
     }
 
     private val payloadCallback: PayloadCallback = object : PayloadCallback() {
         @SuppressLint("NotifyDataSetChanged")
         override fun onPayloadReceived(endpointId: String, payload: Payload) {
             payload.asBytes()?.let {
-                opponentMessage = it.decodeToString()
+
+                opponentMessage = it.decodeToString().toString()
             }
-            val obj =
-                Data(1, otherDevices[endpointId]?:"Default_Name", opponentMessage.toString())
-            msgList.add(obj)
-            messageAdapter.notifyDataSetChanged()
-            binding.chatList.scrollToPosition(msgList.size - 1)
+            val (senderName, message) = extractSenderNameAndMessage(opponentMessage!!)
+
+            if (isImHost) {
+                sendData(senderName, message)
+            }
+
+            if (senderName != myName) {
+                val obj = Data(1, senderName, message)
+
+
+                msgList.add(obj)
+                messageAdapter.notifyDataSetChanged()
+                binding.chatList.scrollToPosition(msgList.size - 1)
+            }
         }
 
         override fun onPayloadTransferUpdate(p0: String, p1: PayloadTransferUpdate) {
 
         }
+    }
+
+    private fun extractSenderNameAndMessage(opponentMessage: String): Pair<String, String> {
+        var right = opponentMessage.length - 1
+        var left = right - 5
+
+        var actualMessage: String = ""
+        var senderName: String = ""
+        while (left > 0) {
+            if (opponentMessage.subSequence(left, right + 1) == divider) {
+                actualMessage = opponentMessage.subSequence(0, left).toString()
+                senderName =
+                    opponentMessage.subSequence(right + 1, opponentMessage.length).toString()
+                break
+            }
+            right--
+            left--
+        }
+        return Pair(senderName, actualMessage)
     }
 
     override fun onNameClicked() {
@@ -181,20 +209,22 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
     }
 
     @SuppressLint("NotifyDataSetChanged")
-    private fun sendData(myN: String, message: String) {
-        if (opponentEndpointId == null) {
-            initConnection()
-        } else {
-            connectionsClient.sendPayload(
-                endpointList,
-                Payload.fromBytes(message.toByteArray())
-            )
-            val m = binding.sendMsgText.text.toString()
-            msgList.add(Data(0, myN, m))
+    private fun sendData(messageSenderName: String, message: String) {
+        val messageWithName = addNameOnMessage(messageSenderName, message)
+        connectionsClient.sendPayload(
+            endpointList, Payload.fromBytes(messageWithName.toByteArray())
+        )
+        val m = binding.sendMsgText.text.toString()
+        if (myName == messageSenderName) {
+            msgList.add(Data(0, messageSenderName, m))
             messageAdapter.notifyDataSetChanged()
             binding.chatList.scrollToPosition(msgList.size - 1)
         }
 
+    }
+
+    private fun addNameOnMessage(name: String, message: String): String {
+        return "$message$divider$name"
     }
 
     private fun initConnection() {
@@ -214,8 +244,9 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onDestroy() {
-        opponentEndpointId?.let {
-            connectionsClient.disconnectFromEndpoint(it)
+        deviceName.clear()
+        for ((key, _) in devicesInfo) {
+            connectionsClient.disconnectFromEndpoint(key)
             resetInfo()
         }
         super.onDestroy()
@@ -227,15 +258,11 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
         super.onStart()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                || checkSelfPermission(
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED || checkSelfPermission(
                     Manifest.permission.BLUETOOTH_SCAN
-                ) != PackageManager.PERMISSION_GRANTED
-                || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
-                || checkSelfPermission(
+                ) != PackageManager.PERMISSION_GRANTED || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED || checkSelfPermission(
                     Manifest.permission.BLUETOOTH_ADVERTISE
-                ) != PackageManager.PERMISSION_GRANTED
-                || checkSelfPermission(
+                ) != PackageManager.PERMISSION_GRANTED || checkSelfPermission(
                     Manifest.permission.FOREGROUND_SERVICE
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
@@ -278,8 +305,8 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
     }
 
     private fun resetInfo() {
-        opponentEndpointId = null
-        opponentName = null
+        devicesInfo.clear()
+        endpointList.clear()
     }
 
     private fun startAdvertising() {
@@ -290,6 +317,7 @@ class ConnectActivity : AppCompatActivity(), DeviceAdapter.Callback {
     }
 
     private fun startDiscovery() {
+        deviceListAdapter.submitList(devicesInfo)
         deviceListBinding.tvTitle.text = "No device found"
         val options = DiscoveryOptions.Builder().setStrategy(STRATEGY).build()
         connectionsClient.startDiscovery(packageName, endpointDiscoveryCallback, options)
